@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>loop_fusion</name>
+  <version>0.0.0</version>
+  <description>loop_fusion package</description>
+  <maintainer email="tony-ws@todo.todo">tony-ws</maintainer>
+  <license>TODO</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>camera_models</depend>
+  <depend>std_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>rclcpp</depend>
+  <depend>cv_bridge</depend>
+  <depend>ament_index_cpp</depend>
+  <depend>pcl_conversions</depend>
+  <depend>vins_msgs</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

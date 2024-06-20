@@ -1,0 +1,2 @@
+sensor_msgs/PointCloud2 pointcloud
+sensor_msgs/ChannelFloat32[] channels
