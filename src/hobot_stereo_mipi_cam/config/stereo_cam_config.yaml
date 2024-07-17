@@ -1,0 +1,9 @@
+hobot_stereo_mipi_cam:
+  ros__parameters:
+    image_width: 1920
+    image_height: 1080
+    data_sampling_ms_diff: -1
+    cam0_topic: /cam0/image_raw
+    cam1_topic: /cam1/image_raw
+    do_pub_compressed_img: false
+    is_gary: false

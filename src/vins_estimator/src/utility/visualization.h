@@ -42,6 +42,7 @@ extern rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr pub_key_pos
 // extern rclcpp::Publisher pub_cur_pose;
 // extern rclcpp::Publisher pub_key;
 extern nav_msgs::msg::Path path;
+
 // extern rclcpp::Publisher pub_pose_graph;
 extern int IMAGE_ROW, IMAGE_COL;
 

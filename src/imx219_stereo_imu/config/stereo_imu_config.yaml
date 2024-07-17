@@ -1,0 +1,6 @@
+imx219_stereo_imu_node:
+  ros__parameters:
+    imu_topic: /imu0
+
+#rosrun topic_tools throttle messages /cam0/image_raw 4.0
+#rosrun topic_tools throttle messages /cam1/image_raw 4.0

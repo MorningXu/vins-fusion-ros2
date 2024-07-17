@@ -27,6 +27,8 @@ rclcpp::Publisher<vins_msgs::msg::PointCloud2WithChannl>::SharedPtr pub_keyframe
 rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pub_point_cloud;
 rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pub_margin_cloud;
 
+std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster;
+
 // rclcpp::Publisher<sensor_msgs::msg::PointCloud>::SharedPtr pub_keyframe_point;
 // rclcpp::Publisher<sensor_msgs::msg::PointCloud>::SharedPtr pub_point_cloud;
 // rclcpp::Publisher<sensor_msgs::msg::PointCloud>::SharedPtr pub_margin_cloud;
@@ -54,6 +56,8 @@ void registerPub(std::shared_ptr<rclcpp::Node> n) {
     pub_margin_cloud = n->create_publisher<sensor_msgs::msg::PointCloud2>("/vins_estimator/margin_cloud", 1000);
     pub_keyframe_point = n->create_publisher<vins_msgs::msg::PointCloud2WithChannl>("/vins_estimator/keyframe_point", 1000);
 
+    tf_broadcaster = std::make_shared<tf2_ros::TransformBroadcaster>(n);
+
     // pub_point_cloud = n->create_publisher<sensor_msgs::msg::PointCloud>("/vins_estimator/point_cloud", 1000);
     // pub_margin_cloud = n->create_publisher<sensor_msgs::msg::PointCloud>("/vins_estimator/margin_cloud", 1000);
     // pub_keyframe_point = n->create_publisher<sensor_msgs::msg::PointCloud>("/vins_estimator/keyframe_point", 1000);
@@ -80,11 +84,11 @@ void pubLatestOdometry(const Eigen::Vector3d &P, const Eigen::Quaterniond &Q, co
 }
 
 void pubTrackImage(const cv::Mat &imgTrack, const double t) {
-    std_msgs::msg::Header header;
-    header.frame_id = "world";
-    header.stamp = rclcpp::Time(t);
+    std_msgs::msg::Header::SharedPtr header = std::make_shared<std_msgs::msg::Header>();
+    header->frame_id = "world";
+    header->stamp = rclcpp::Time(t);
     sensor_msgs::msg::Image imgTrackMsg;
-    cv_bridge::CvImage(header, "bgr8", imgTrack).toImageMsg(imgTrackMsg);
+    cv_bridge::CvImage(*header, "bgr8", imgTrack).toImageMsg(imgTrackMsg);
     pub_image_track->publish(imgTrackMsg);
 }
 
@@ -161,25 +165,25 @@ void pubOdometry(const Estimator &estimator, const std_msgs::msg::Header &header
         pub_path->publish(path);
 
         // write result to file
-        std::ofstream foutC(VINS_RESULT_PATH, std::ios::app);
-        foutC.setf(std::ios::fixed, std::ios::floatfield);
-        foutC.precision(0);
-        foutC << header.stamp.sec + header.stamp.nanosec* 1e-9 << ",";
-        foutC.precision(5);
-        foutC << estimator.Ps[WINDOW_SIZE].x() << ","
-                << estimator.Ps[WINDOW_SIZE].y() << ","
-                << estimator.Ps[WINDOW_SIZE].z() << ","
-                << tmp_Q.w() << ","
-                << tmp_Q.x() << ","
-                << tmp_Q.y() << ","
-                << tmp_Q.z() << ","
-                << estimator.Vs[WINDOW_SIZE].x() << ","
-                << estimator.Vs[WINDOW_SIZE].y() << ","
-                << estimator.Vs[WINDOW_SIZE].z() << "," << std::endl;
-        foutC.close();
+        // std::ofstream foutC(VINS_RESULT_PATH, std::ios::app);
+        // foutC.setf(std::ios::fixed, std::ios::floatfield);
+        // foutC.precision(0);
+        // foutC << header.stamp.sec + header.stamp.nanosec* 1e-9 << ",";
+        // foutC.precision(5);
+        // foutC << estimator.Ps[WINDOW_SIZE].x() << ","
+        //         << estimator.Ps[WINDOW_SIZE].y() << ","
+        //         << estimator.Ps[WINDOW_SIZE].z() << ","
+        //         << tmp_Q.w() << ","
+        //         << tmp_Q.x() << ","
+        //         << tmp_Q.y() << ","
+        //         << tmp_Q.z() << ","
+        //         << estimator.Vs[WINDOW_SIZE].x() << ","
+        //         << estimator.Vs[WINDOW_SIZE].y() << ","
+        //         << estimator.Vs[WINDOW_SIZE].z() << "," << std::endl;
+        // foutC.close();
         Eigen::Vector3d tmp_T = estimator.Ps[WINDOW_SIZE];
-        printf("time: %f, t: %f %f %f q: %f %f %f %f \n", header.stamp.sec + header.stamp.nanosec* 1e-9, tmp_T.x(), tmp_T.y(), tmp_T.z(),
-               tmp_Q.w(), tmp_Q.x(), tmp_Q.y(), tmp_Q.z());
+        // printf("time: %f, t: %f %f %f q: %f %f %f %f \n", header.stamp.sec + header.stamp.nanosec* 1e-9, tmp_T.x(), tmp_T.y(), tmp_T.z(),
+        //        tmp_Q.w(), tmp_Q.x(), tmp_Q.y(), tmp_Q.z());
     }
 }
 
@@ -250,7 +254,7 @@ void pubCameraPose(const Estimator &estimator, const std_msgs::msg::Header &head
 
 void pubPointCloud(const Estimator &estimator, const std_msgs::msg::Header &header) {
     sensor_msgs::msg::PointCloud2 point_cloud;
-    pcl::PointCloud<pcl::PointXYZ>::Ptr pcl_point_cloud;
+    pcl::PointCloud<pcl::PointXYZ>::Ptr pcl_point_cloud(new pcl::PointCloud<pcl::PointXYZ>());
 
     for (auto &it_per_id: estimator.f_manager.feature) {
         int used_num;
@@ -275,6 +279,8 @@ void pubPointCloud(const Estimator &estimator, const std_msgs::msg::Header &head
         p.z = w_pts_i(2);
         pcl_point_cloud->points.push_back(p);
     }
+    pcl_point_cloud->height = 1;
+    pcl_point_cloud->width = pcl_point_cloud->points.size();
     pcl::toROSMsg(*pcl_point_cloud, point_cloud);
     point_cloud.header = header;
     pub_point_cloud->publish(point_cloud);
@@ -282,7 +288,7 @@ void pubPointCloud(const Estimator &estimator, const std_msgs::msg::Header &head
 
     // pub margined potin
     sensor_msgs::msg::PointCloud2 margin_cloud;
-    pcl::PointCloud<pcl::PointXYZ>::Ptr pcl_margin_cloud;
+    pcl::PointCloud<pcl::PointXYZ>::Ptr pcl_margin_cloud(new pcl::PointCloud<pcl::PointXYZ>());
 
     for (auto &it_per_id: estimator.f_manager.feature) {
         int used_num;
@@ -311,6 +317,8 @@ void pubPointCloud(const Estimator &estimator, const std_msgs::msg::Header &head
             pcl_margin_cloud->points.push_back(p);
         }
     }
+    pcl_margin_cloud->height = 1;
+    pcl_margin_cloud->width = pcl_margin_cloud->points.size();
     pcl::toROSMsg(*pcl_margin_cloud, margin_cloud);
     margin_cloud.header = header;
     pub_margin_cloud->publish(margin_cloud);
@@ -320,7 +328,7 @@ void pubPointCloud(const Estimator &estimator, const std_msgs::msg::Header &head
 void pubTF(const Estimator &estimator, const std_msgs::msg::Header &header) {
     if (estimator.solver_flag != Estimator::SolverFlag::NON_LINEAR)
         return;
-    std::shared_ptr<tf2_ros::TransformBroadcaster> br;
+
     geometry_msgs::msg::TransformStamped transform_body, transform_cam;
 
     // body frame
@@ -341,7 +349,7 @@ void pubTF(const Estimator &estimator, const std_msgs::msg::Header &header) {
     transform_body.header.stamp = header.stamp;
     transform_body.header.frame_id = "world";
     transform_body.child_frame_id = "body";
-    br->sendTransform(transform_body);
+    tf_broadcaster->sendTransform(transform_body);
 
     // camera frame
     transform_cam.transform.translation.x = estimator.tic[0].x();
@@ -356,7 +364,7 @@ void pubTF(const Estimator &estimator, const std_msgs::msg::Header &header) {
     transform_cam.header.stamp = header.stamp;
     transform_cam.header.frame_id = "body";
     transform_cam.child_frame_id = "camera";
-    br->sendTransform(transform_cam);
+    tf_broadcaster->sendTransform(transform_cam);
 
 
     nav_msgs::msg::Odometry odometry;
@@ -427,7 +435,7 @@ void pubKeyframe(const Estimator &estimator) {
 
         // sensor_msgs::msg::PointCloud2 point_cloud;
         vins_msgs::msg::PointCloud2WithChannl pcc;
-        pcl::PointCloud<pcl::PointXYZ>::Ptr pcl_cloud;
+        pcl::PointCloud<pcl::PointXYZ>::Ptr pcl_cloud(new pcl::PointCloud<pcl::PointXYZ>());
         for (auto &it_per_id: estimator.f_manager.feature) {
             int frame_size = it_per_id.feature_per_frame.size();
             if (it_per_id.start_frame < WINDOW_SIZE - 2 && it_per_id.start_frame + frame_size - 1 >= WINDOW_SIZE - 2 &&
@@ -452,6 +460,8 @@ void pubKeyframe(const Estimator &estimator) {
                 pcc.channels.push_back(p_2d);
             }
         }
+        pcl_cloud->height = 1;
+        pcl_cloud->width = pcl_cloud->points.size();
         pcl::toROSMsg(*pcl_cloud, pcc.pointcloud);
         pcc.pointcloud.header.stamp = rclcpp::Time(estimator.Headers[WINDOW_SIZE - 2]);
         pcc.pointcloud.header.frame_id = "world";

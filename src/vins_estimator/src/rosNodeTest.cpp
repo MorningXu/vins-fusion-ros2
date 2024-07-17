@@ -67,7 +67,7 @@ void sync_process() {
     while (1) {
         if (STEREO) {
             cv::Mat image0, image1;
-            std_msgs::msg::Header header;
+            // std_msgs::msg::Header header;
             double time = 0;
             m_buf.lock();
             if (!img0_buf.empty() && !img1_buf.empty()) {
@@ -82,7 +82,7 @@ void sync_process() {
                     printf("throw img1\n");
                 } else {
                     time = img0_buf.front().header.stamp.sec + img0_buf.front().header.stamp.nanosec * 1e-9;
-                    header = img0_buf.front().header;
+                    // header = img0_buf.front().header;
                     image0 = getImageFromMsg(img0_buf.front());
                     img0_buf.pop();
                     image1 = getImageFromMsg(img1_buf.front());
@@ -225,11 +225,11 @@ int main(int argc, char **argv) {
                                                                             std::bind(&feature_callback,
                                                                                 std::placeholders::_1));
 
-    auto sub_img0 = n->create_subscription<sensor_msgs::msg::Image>(IMAGE0_TOPIC, 100,
+    auto sub_img0 = n->create_subscription<sensor_msgs::msg::Image>(IMAGE0_TOPIC, 200,
                                                                     std::bind(&img0_callback, std::placeholders::_1));
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr sub_img1;
     if (STEREO) {
-        sub_img1 = n->create_subscription<sensor_msgs::msg::Image>(IMAGE1_TOPIC, 100,
+        sub_img1 = n->create_subscription<sensor_msgs::msg::Image>(IMAGE1_TOPIC, 200,
                                                                    std::bind(&img1_callback, std::placeholders::_1));
     }
     auto sub_restart = n->create_subscription<std_msgs::msg::Bool>("/vins_restart", 100,

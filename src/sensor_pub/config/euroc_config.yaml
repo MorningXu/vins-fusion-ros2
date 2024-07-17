@@ -1,0 +1,7 @@
+euroc_pub:
+  ros__parameters:
+    dataset_dir: /mnt/c/WorkSpace/DataSets/Video/EuRoC/MH_01_easy/mav0
+    imu_topic: /imu0
+    is_stereo: true
+    cam0_topic: /cam0/image_raw
+    cam1_topic: /cam1/image_raw

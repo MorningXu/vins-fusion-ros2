@@ -8,6 +8,9 @@
  *******************************************************/
 
 #include "estimator.h"
+
+#include <pcl/common/copy_point.h>
+
 #include "../utility/visualization.h"
 
 Estimator::Estimator(): f_manager{Rs} {
@@ -281,7 +284,10 @@ void Estimator::processMeasurements() {
 
             std_msgs::msg::Header header;
             header.frame_id = "world";
-            header.stamp = rclcpp::Time(feature.first);
+            long secs = feature.first;
+            long nanosecs = (feature.first - secs)* 1e9;
+            header.stamp.sec = secs;
+            header.stamp.nanosec = nanosecs;
 
             pubOdometry(*this, header);
             pubKeyPoses(*this, header);

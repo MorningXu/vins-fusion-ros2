@@ -7,10 +7,10 @@ num_of_cam: 2
 imu_topic: ""
 image0_topic: ""
 image1_topic: ""
-output_path: "/home/tony-ws1/output/"
+output_path: "/root/output/"
 
-cam0_calib: "cam_10_03.yaml"
-cam1_calib: "cam_10_03.yaml"
+cam0_calib: "right.yaml"
+cam1_calib: "right.yaml"
 image_width: 1241
 image_height: 376
 
